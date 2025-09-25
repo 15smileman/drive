@@ -1,0 +1,543 @@
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: #1f242d;
+  color: #f4f6fb;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+header, footer {
+  padding: 1.25rem 2rem;
+  background: #111821;
+  box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+  text-align: center;
+}
+header h1 {
+  margin: 0 0 0.25rem;
+  font-size: 1.8rem;
+}
+header p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #aeb5c0;
+}
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem 2rem;
+  align-items: center;
+  text-align: center;
+}
+.simulation {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin: 1rem 0;
+}
+canvas {
+  width: 100%;
+  max-width: 960px;
+  border-radius: 16px;
+  background: radial-gradient(circle at top, #3a424f 0%, #232832 55%, #161a22 100%);
+  box-shadow: 0 24px 40px rgba(0, 0, 0, 0.35), inset 0 0 20px rgba(255, 255, 255, 0.04);
+}
+.hud {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: rgba(17, 24, 33, 0.6);
+  border-radius: 14px;
+  padding: 1.25rem;
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: center;
+  align-items: center;
+}
+.hud h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+}
+.hud ol, .hud ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: #cbd3df;
+}
+.status dl {
+  margin: 0;
+  display: grid;
+  gap: 0.35rem 0.75rem;
+}
+.status div {
+  display: contents;
+}
+.status dt {
+  font-weight: 600;
+  color: #91a2bc;
+}
+.status dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+#reset-btn {
+  align-self: start;
+  padding: 0.6rem 1.4rem;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(135deg, #ffb703, #fb8500);
+  color: #0b0d12;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+#reset-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 18px rgba(251, 133, 0, 0.3);
+}
+.checklist {
+  background: rgba(17, 24, 33, 0.7);
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  text-align: center;
+}
+.checklist h2 {
+  margin-top: 0;
+}
+
+.checklist-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.checklist-item {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: left;
+}
+
+.checklist-item h3 {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  color: #f4f6fb;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 0.5rem;
+}
+
+.checklist-item ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: #cbd3df;
+}
+
+.checklist-item li {
+  margin: 0.4rem 0;
+}
+footer {
+  text-align: center;
+  color: #7d8797;
+  font-size: 0.85rem;
+}
+@media (max-width: 1024px) {
+  .simulation {
+    grid-template-columns: 1fr;
+  }
+  canvas {
+    max-width: 100%;
+  }
+}
+
+/* 터치 컨트롤 스타일 */
+.touch-controls {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.touch-controls button {
+  flex: 1;
+  padding: 0.75rem;
+  border: 2px solid #007bff;
+  background: #007bff;
+  color: white;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.touch-controls button:hover,
+.touch-controls button:focus {
+  background: #0056b3;
+  border-color: #0056b3;
+  transform: translateY(-1px);
+}
+
+.touch-controls button:active {
+  transform: translateY(1px);
+  background: #004494;
+}
+
+.brake-btn {
+  background: linear-gradient(145deg, #dc3545, #c82333) !important;
+}
+
+.brake-btn:active {
+  background: linear-gradient(145deg, #a71e2a, #801f2c) !important;
+}
+
+.reset-btn {
+  background: linear-gradient(145deg, #28a745, #20a03a) !important;
+}
+
+.reset-btn:active {
+  background: linear-gradient(145deg, #1e7e34, #155724) !important;
+}
+
+.large-btn {
+  width: 70px !important;
+  height: 70px !important;
+  font-size: 24px !important;
+}
+
+.brake-btn.large-btn {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.brake-btn.large-btn .arrow {
+  text-align: center !important;
+}
+
+/* 화살표 컨트롤 패드 */
+.mobile-control-pad {
+  display: block; /* 항상 표시 */
+  position: relative;
+  margin: 1rem auto;
+  width: fit-content;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 20px;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.control-pad-container {
+  display: grid;
+  grid-template-columns: 1fr auto auto 1fr auto;
+  align-items: center;
+  justify-items: center;
+  gap: 1rem;
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.reset-btn {
+  grid-column: 1;
+}
+
+.left-btn {
+  grid-column: 2;
+}
+
+.vertical-controls {
+  grid-column: 3;
+}
+
+.right-btn {
+  grid-column: 4;
+}
+
+.brake-btn {
+  grid-column: 5;
+}
+
+.vertical-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0 1rem; /* 중앙 전진/후진 버튼에 좌우 여백 */
+}
+
+.arrow-btn {
+  width: 65px;
+  height: 65px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #4a5568, #2d3748);
+  color: white;
+  font-size: 1.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.arrow-btn:active {
+  transform: scale(0.95);
+  background: linear-gradient(145deg, #2d3748, #1a202c);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.forward-btn:active {
+  background: linear-gradient(145deg, #38a169, #2f855a);
+}
+
+.backward-btn:active {
+  background: linear-gradient(145deg, #e53e3e, #c53030);
+}
+
+.left-btn:active {
+  background: linear-gradient(145deg, #3182ce, #2c5aa0);
+}
+
+.right-btn:active {
+  background: linear-gradient(145deg, #3182ce, #2c5aa0);
+}
+
+.arrow {
+  display: block;
+  line-height: 1;
+}
+
+/* 터치 디바이스용 추가 스타일 */
+@media (max-width: 768px) {
+  .touch-controls {
+    margin-top: 1rem;
+    background: rgba(255, 255, 255, 0.95);
+    padding: 0.5rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .touch-controls button {
+    padding: 1rem;
+    font-size: 1.1rem;
+  }
+
+  .simulation {
+    grid-template-columns: 1fr;
+  }
+
+  canvas {
+    max-width: 100%;
+  }
+}
+
+/* 목표 섹션 스타일 */
+.goal-info {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: rgba(17, 24, 33, 0.6);
+  border-radius: 12px;
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.goal-info h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+  color: #f4f6fb;
+}
+
+.goal-info ol {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: #cbd3df;
+}
+
+/* 조작법 안내 */
+.controls-info {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: 8px;
+  text-align: center;
+}
+
+.controls-info p {
+  margin: 0;
+  color: #cbd3df;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+/* 주차 순서 섹션 스타일 */
+.parking-order {
+  margin: 2rem 0;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+  border-radius: 12px;
+  border: 2px solid #cbd5e1;
+  text-align: center;
+}
+
+.parking-order h2 {
+  color: #1e293b;
+  margin-bottom: 1rem;
+  text-align: center;
+  font-size: 1.5rem;
+}
+
+.order-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.order-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e2e8f0;
+}
+
+.order-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+  flex-shrink: 0;
+}
+
+.order-number.red {
+  background: #f87171;
+}
+
+.order-number.green {
+  background: #4ade80;
+}
+
+.order-content h3 {
+  margin: 0 0 0.5rem 0;
+  color: #1e293b;
+  font-size: 1.1rem;
+}
+
+.order-content p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.order-note {
+  text-align: center;
+  font-size: 1rem;
+  color: #475569;
+  margin: 0;
+}
+
+.red-text {
+  color: #f87171;
+  font-weight: bold;
+}
+
+.green-text {
+  color: #4ade80;
+  font-weight: bold;
+}
+
+/* 게임 시작/실패 오버레이 스타일 */
+.game-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(5px);
+}
+
+.game-overlay.hidden {
+  display: none;
+}
+
+.overlay-content {
+  background: linear-gradient(135deg, #1f242d, #111821);
+  padding: 3rem 2.5rem;
+  border-radius: 20px;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  max-width: 500px;
+  width: 90%;
+}
+
+.overlay-content h2 {
+  margin: 0 0 1rem 0;
+  font-size: 2rem;
+  color: #f4f6fb;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.overlay-content p {
+  margin: 0 0 2rem 0;
+  font-size: 1.1rem;
+  color: #cbd3df;
+  line-height: 1.5;
+}
+
+.start-btn {
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  font-weight: bold;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+  min-width: 150px;
+}
+
+.start-btn:hover {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
+}
+
+.start-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 10px rgba(34, 197, 94, 0.3);
+}
+
+.start-btn.restart {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+}
+
+.start-btn.restart:hover {
+  background: linear-gradient(135deg, #d97706, #b45309);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+}
