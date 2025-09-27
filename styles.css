@@ -27,8 +27,8 @@ main {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
-  padding: 1.5rem 2rem;
+  gap: 0.8rem; /* 간격 축소 */
+  padding: 0.8rem 1rem; /* 패딩 축소 */
   align-items: center;
   text-align: center;
 }
@@ -36,7 +36,7 @@ main {
   position: relative;
   display: flex;
   justify-content: center;
-  margin: 1rem 0;
+  margin: 0.3rem 0 0 0; /* 위쪽만 최소 여백, 아래쪽 여백 제거 */
 }
 canvas {
   width: 100%;
@@ -111,14 +111,14 @@ canvas {
 .checklist-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1rem;
-  margin-top: 1rem;
+  gap: 0.8rem; /* 간격 축소 */
+  margin-top: 0.5rem; /* 여백 축소 */
 }
 
 .checklist-item {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 8px;
-  padding: 1rem;
+  padding: 0.8rem; /* 패딩 축소 */
   text-align: left;
 }
 
@@ -205,9 +205,9 @@ footer {
 }
 
 .large-btn {
-  width: 70px !important;
-  height: 70px !important;
-  font-size: 24px !important;
+  width: 47px !important; /* 70px의 2/3 */
+  height: 47px !important; /* 70px의 2/3 */
+  font-size: 16px !important; /* 24px의 2/3 */
 }
 
 .brake-btn.large-btn {
@@ -223,23 +223,27 @@ footer {
 /* 화살표 컨트롤 패드 */
 .mobile-control-pad {
   display: block; /* 항상 표시 */
-  position: relative;
-  margin: 1rem auto;
-  width: fit-content;
-  background: rgba(0, 0, 0, 0.8);
-  border-radius: 20px;
-  padding: 1rem 1.5rem;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  position: absolute;
+  bottom: -10px; /* 화면 하단보다 10px 아래로 내려서 배치 */
+  left: 50%;
+  transform: translateX(-50%); /* 수평 중앙 정렬 */
+  width: 270px; /* 고정 너비로 설정하여 모든 버튼이 배경 안에 들어오도록 */
+  background: rgba(0, 0, 0, 0.9); /* 배경을 조금 더 진하게 */
+  border-radius: 13px; /* 20px의 2/3 */
+  padding: 0.7rem; /* 모든 방향 동일한 패딩 */
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  z-index: 1000; /* 다른 요소들 위에 표시 */
 }
 
 .control-pad-container {
   display: grid;
-  grid-template-columns: 1fr auto auto 1fr auto;
+  grid-template-columns: auto auto auto auto auto; /* 모든 컬럼을 auto로 균등화 */
   align-items: center;
   justify-items: center;
-  gap: 1rem;
-  max-width: 420px;
+  gap: 0.5rem; /* 간격을 더 줄여서 버튼들이 배경 안에 들어오도록 */
+  max-width: 260px; /* 최대 폭을 줄여서 버튼들이 배경을 벗어나지 않도록 */
   margin: 0 auto;
+  justify-content: center; /* space-between 대신 center로 변경 */
 }
 
 .reset-btn {
@@ -270,13 +274,13 @@ footer {
 }
 
 .arrow-btn {
-  width: 65px;
-  height: 65px;
+  width: 43px; /* 65px의 2/3 */
+  height: 43px; /* 65px의 2/3 */
   border: none;
-  border-radius: 12px;
+  border-radius: 8px; /* 12px의 2/3 */
   background: linear-gradient(145deg, #4a5568, #2d3748);
   color: white;
-  font-size: 1.8rem;
+  font-size: 1.2rem; /* 1.8rem의 2/3 */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -341,8 +345,8 @@ footer {
 
 /* 목표 섹션 스타일 */
 .goal-info {
-  margin: 1rem 0;
-  padding: 1rem;
+  margin: 0.5rem 0; /* 여백 축소 */
+  padding: 0.8rem; /* 패딩 축소 */
   background: rgba(17, 24, 33, 0.6);
   border-radius: 12px;
   backdrop-filter: blur(6px);
@@ -363,8 +367,8 @@ footer {
 
 /* 조작법 안내 */
 .controls-info {
-  margin: 1.5rem 0;
-  padding: 1rem;
+  margin: 6rem 0 0.5rem 0; /* 상단 여백을 6rem으로 크게 늘려서 조작법 문구 자체를 아래로 내림 */
+  padding: 0.8rem; /* 패딩은 원래대로 */
   background: rgba(59, 130, 246, 0.1);
   border: 1px solid rgba(59, 130, 246, 0.2);
   border-radius: 8px;
@@ -508,17 +512,17 @@ footer {
 }
 
 .start-btn {
-  padding: 1rem 2rem;
-  font-size: 1.2rem;
+  padding: 0.7rem 1.3rem; /* 1rem 2rem의 2/3 */
+  font-size: 0.8rem; /* 1.2rem의 2/3 */
   font-weight: bold;
   border: none;
-  border-radius: 12px;
+  border-radius: 8px; /* 12px의 2/3 */
   background: linear-gradient(135deg, #22c55e, #16a34a);
   color: white;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
-  min-width: 150px;
+  min-width: 100px; /* 150px의 2/3 */
 }
 
 .start-btn:hover {
@@ -541,3 +545,4 @@ footer {
   background: linear-gradient(135deg, #d97706, #b45309);
   box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
 }
+

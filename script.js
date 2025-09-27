@@ -52,7 +52,7 @@ function initializeControlButtons() {
     });
   }
 
-  // 브레이크 버튼
+  // 브레이크 버튼 (기존)
   const brakeBtn = document.getElementById('brake-btn');
   if (brakeBtn) {
     brakeBtn.addEventListener('click', () => {
@@ -64,6 +64,7 @@ function initializeControlButtons() {
       }
     });
   }
+
 
   // 화살표 버튼들
   const arrowButtons = {
@@ -206,14 +207,26 @@ function Controls() {
     }
   });
 
-  // 터치 이벤트
+  // 터치 이벤트 (자동차 정지 버튼 클릭 감지 포함)
   canvas.addEventListener('touchstart', (e) => {
     e.preventDefault();
     const touch = e.touches[0];
     const rect = canvas.getBoundingClientRect();
+
+    // 자동차 정지 버튼 클릭 감지
+    const touchX = touch.clientX - rect.left;
+    const touchY = touch.clientY - rect.top;
+    if (this.checkCarBrakeButtonClick(touchX, touchY)) {
+      this.state.set('brake', true);
+      setTimeout(() => {
+        this.state.set('brake', false);
+      }, 200);
+      return; // 정지 버튼 클릭이면 다른 터치 처리하지 않음
+    }
+
     this.touchState.touching = true;
-    this.touchState.startX = touch.clientX - rect.left;
-    this.touchState.startY = touch.clientY - rect.top;
+    this.touchState.startX = touchX;
+    this.touchState.startY = touchY;
     this.touchState.currentX = this.touchState.startX;
     this.touchState.currentY = this.touchState.startY;
   });
@@ -239,6 +252,20 @@ function Controls() {
     this.state.set('backward', false);
     this.state.set('left', false);
     this.state.set('right', false);
+  });
+
+  // 마우스 클릭 이벤트 (자동차 정지 버튼 클릭 감지)
+  canvas.addEventListener('click', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+
+    if (this.checkCarBrakeButtonClick(clickX, clickY)) {
+      this.state.set('brake', true);
+      setTimeout(() => {
+        this.state.set('brake', false);
+      }, 200);
+    }
   });
 
   // 터치 기반 조향 및 가속 계산
@@ -271,6 +298,23 @@ function Controls() {
       this.state.set('left', false);
       this.state.set('right', false);
     }
+  };
+
+  // 자동차 정지 버튼 클릭 감지 함수
+  this.checkCarBrakeButtonClick = function(clickX, clickY) {
+    if (!game || !game.car) return false;
+
+    const car = game.car;
+    const carScreenX = car.position.x;
+    const carScreenY = car.position.y;
+
+    // 자동차 중심에서 8픽셀 반경 내 클릭인지 확인
+    const distance = Math.sqrt(
+      Math.pow(clickX - carScreenX, 2) +
+      Math.pow(clickY - carScreenY, 2)
+    );
+
+    return distance <= 18; // 클릭 영역을 확대된 버튼에 맞춰 조정 (18픽셀 반경)
   };
 }
 
@@ -854,10 +898,19 @@ Car.prototype.draw = function draw(context, cameraMode) {
   context.fillRect(-this.width / 2 + 4, -this.length / 2 + 8, this.width - 8, 18);
   context.fillRect(-this.width / 2 + 4, this.length / 2 - 26, this.width - 8, 18);
 
-  context.fillStyle = '#ffc400';
+  // 자동차 중앙의 정지 버튼 (노란색 원 대신)
+  context.fillStyle = '#dc2626'; // 빨간색 배경
+  context.strokeStyle = '#ffffff'; // 흰색 테두리
+  context.lineWidth = 2;
   context.beginPath();
-  context.arc(0, 0, 6, 0, Math.PI * 2);
+  context.arc(0, 0, 12, 0, Math.PI * 2); // 반지름을 8에서 12로 확대
   context.fill();
+  context.stroke();
+
+  // 정지 사각형 기호 (■)
+  context.fillStyle = '#ffffff';
+  context.fillRect(-5, -5, 10, 10); // 사각형도 크게 조정 (8x8 → 10x10)
+
   context.restore();
 };
 
