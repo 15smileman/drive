@@ -508,8 +508,23 @@ Game.prototype.render = function render() {
   const footprint = car.getRect();
   const inRightSlot = rectContainsRect(expandRect(this.target, -10), footprint);
   const inLeftSlot = rectContainsRect(expandRect(this.leftTarget, -10), footprint);
+
+  // 2번과 3번 주차 구역 체크 (centerTargets가 존재할 때만)
+  let inFirstCenter = false;
+  let inSecondCenter = false;
+  if (this.centerTargets.length > 0) {
+    inFirstCenter = rectContainsRect(expandRect(this.centerTargets[0], -10), footprint);
+    inSecondCenter = rectContainsRect(expandRect(this.centerTargets[1], -10), footprint);
+  }
+
   drawTarget(this.target, this.cameraMode, this.grade === '주차 성공' && inRightSlot);
   drawTarget(this.leftTarget, this.cameraMode, this.grade === '주차 성공' && inLeftSlot);
+
+  // 2번과 3번 주차 구역도 drawTarget으로 그리기 (색상 변경 효과 적용)
+  if (this.centerTargets.length > 0) {
+    drawTarget(this.centerTargets[0], this.cameraMode, this.grade === '주차 성공' && inFirstCenter);
+    drawTarget(this.centerTargets[1], this.cameraMode, this.grade === '주차 성공' && inSecondCenter);
+  }
   drawObstacles(this.obstacles, this.cameraMode);
   this.car.draw(ctx, this.cameraMode);
 
@@ -548,13 +563,7 @@ Game.prototype.drawBackground = function drawBackground() {
 
   ctx.restore();
 
-  // 가이드 라인 사이에 노란색 주차박스 2개 그리기
-  ctx.save();
-  ctx.strokeStyle = '#facc15';
-  ctx.lineWidth = 4;
-  ctx.setLineDash([20, 14]);
-
-  // 첫 번째 주차박스 (첫 번째와 두 번째 가이드 라인 사이)
+  // 가운데 주차박스들의 좌표 계산 (drawTarget으로 그리기 위해 좌표만 계산)
   const firstGuideX = leftEnd + spacing * 1;
   const secondGuideX = leftEnd + spacing * 2;
   const firstBoxWidth = secondGuideX - firstGuideX - 20; // 양쪽에 10픽셀 여백
@@ -562,16 +571,10 @@ Game.prototype.drawBackground = function drawBackground() {
   const boxY = 300; // 자동차가 들어갈 수 있는 적절한 위치
   const boxHeight = 160; // 자동차 길이(116) + 여유공간
 
-  ctx.strokeRect(firstBoxX, boxY, firstBoxWidth, boxHeight);
-
   // 두 번째 주차박스 (두 번째와 세 번째 가이드 라인 사이)
   const thirdGuideX = leftEnd + spacing * 3;
   const secondBoxWidth = thirdGuideX - secondGuideX - 20; // 양쪽에 10픽셀 여백
   const secondBoxX = secondGuideX + 10;
-
-  ctx.strokeRect(secondBoxX, boxY, secondBoxWidth, boxHeight);
-
-  ctx.restore();
 
   // 가운데 주차박스들을 centerTargets에 저장 (주차 완료 체크용)
   if (this.centerTargets.length === 0) {
