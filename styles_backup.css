@@ -220,37 +220,30 @@ footer {
   text-align: center !important;
 }
 
-/* 컨트롤과 도전 버튼들을 나란히 배치하는 컨테이너 */
-.control-and-challenge-container {
-  position: absolute;
-  bottom: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 20px; /* 간격 조금 늘림 */
-  z-index: 1000;
-}
-
 /* 화살표 컨트롤 패드 */
 .mobile-control-pad {
-  display: block;
-  width: 280px;
-  background: rgba(0, 0, 0, 0.9);
-  border-radius: 15px;
-  padding: 0.8rem;
+  display: block; /* 항상 표시 */
+  position: absolute;
+  bottom: -10px; /* 화면 하단보다 10px 아래로 내려서 배치 */
+  left: 50%;
+  transform: translateX(-50%); /* 수평 중앙 정렬 */
+  width: 270px; /* 고정 너비로 설정하여 모든 버튼이 배경 안에 들어오도록 */
+  background: rgba(0, 0, 0, 0.9); /* 배경을 조금 더 진하게 */
+  border-radius: 13px; /* 20px의 2/3 */
+  padding: 0.7rem; /* 모든 방향 동일한 패딩 */
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  z-index: 1000; /* 다른 요소들 위에 표시 */
 }
 
 .control-pad-container {
   display: grid;
-  grid-template-columns: auto auto auto auto auto; /* 기존대로: 리셋, 왼쪽, 중앙, 오른쪽, 브레이크 */
+  grid-template-columns: auto auto auto auto auto; /* 모든 컬럼을 auto로 균등화 */
   align-items: center;
   justify-items: center;
-  gap: 0.4rem;
-  max-width: 250px; /* 원래 크기로 복원 */
+  gap: 0.5rem; /* 간격을 더 줄여서 버튼들이 배경 안에 들어오도록 */
+  max-width: 260px; /* 최대 폭을 줄여서 버튼들이 배경을 벗어나지 않도록 */
   margin: 0 auto;
-  justify-content: center;
+  justify-content: center; /* space-between 대신 center로 변경 */
 }
 
 .reset-btn {
@@ -553,29 +546,24 @@ footer {
   box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
 }
 
-/* 왼쪽과 오른쪽 도전 버튼 영역 */
-.challenge-left-side,
-.challenge-right-side {
-  display: flex;
-  flex-direction: row; /* 가로로 변경 */
-  gap: 0.5rem;
-  align-items: flex-start; /* 위쪽 정렬로 변경 */
-  background: rgba(0, 0, 0, 0.8);
-  border-radius: 12px;
-  padding: 0.5rem 0.6rem;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+/* 주차 도전 섹션 - 컨트롤 패드와 통합 */
+.challenge-section {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.challenge-right-side {
-  gap: 0.4rem; /* 3개 버튼이라 간격 조금 줄임 */
-}
-
-/* 개별 도전 버튼과 시간 기록을 세로로 묶는 컨테이너 */
-.challenge-item {
+.challenge-buttons {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 0.3rem;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.challenge-row {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
 }
 
 .challenge-btn {
@@ -583,18 +571,13 @@ footer {
   color: white;
   border: none;
   border-radius: 6px;
-  padding: 5px 10px;
-  font-size: 11px;
+  padding: 6px 12px;
+  font-size: 12px;
   font-weight: bold;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
-  min-width: 42px;
-  width: 42px; /* 고정 너비 */
-  height: 28px; /* 고정 높이 */
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3);
+  min-width: 45px;
 }
 
 .challenge-btn:hover {
@@ -613,30 +596,44 @@ footer {
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
 }
 
-/* 기존 시간 기록 영역 제거됨 - 이제 각 버튼 아래 표시 */
+/* 시간 기록 표시 - 통합 버전 */
+.time-records-integrated {
+  margin-top: 10px;
+}
+
+.record-row {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.record-center {
+  display: flex;
+  justify-content: center;
+}
 
 .time-record {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.1);
   color: #e5e7eb;
-  padding: 2px 6px;
+  padding: 4px 8px;
   border-radius: 4px;
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 500;
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  min-width: 42px;
+  min-width: 60px;
   text-align: center;
-  white-space: nowrap;
 }
 
 .time-record.all-record {
-  background: rgba(79, 70, 229, 0.25);
+  background: rgba(79, 70, 229, 0.2);
   color: #a5b4fc;
-  border-color: rgba(79, 70, 229, 0.4);
-  font-size: 9px;
+  border-color: rgba(79, 70, 229, 0.3);
+  font-size: 12px;
   font-weight: 600;
-  min-width: 42px;
-  padding: 2px 6px;
+  min-width: 80px;
+  padding: 6px 12px;
 }
 
 .time-record.completed {
@@ -705,50 +702,32 @@ footer {
 
 /* 모바일 반응형 */
 @media (max-width: 768px) {
-  .control-and-challenge-container {
-    gap: 12px;
+  .parking-challenge-container {
+    flex-direction: column;
+    gap: 15px;
   }
 
-  .mobile-control-pad {
-    width: 260px; /* 모바일에서 조금 줄임 */
+  .challenge-left,
+  .challenge-right {
+    justify-content: center;
   }
 
-  .control-pad-container {
-    max-width: 230px;
+  .time-records {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
   }
 
-  .challenge-btn {
-    width: 36px;
-    height: 26px;
-    min-width: 36px;
-    padding: 4px 8px;
-    font-size: 10px;
+  .record-left,
+  .record-right {
+    flex-direction: row;
+    gap: 10px;
   }
 
-  .challenge-left-side,
-  .challenge-right-side {
-    padding: 0.4rem 0.5rem;
-    gap: 0.3rem;
-  }
-
-  .challenge-right-side {
-    gap: 0.25rem; /* 3개 버튼이라 더 좁게 */
-  }
-
-  .challenge-item {
-    gap: 0.2rem; /* 모바일에서 간격 줄임 */
-  }
-
-  .time-record {
-    min-width: 36px;
-    font-size: 8px;
-    padding: 1px 4px;
-  }
-
-  .time-record.all-record {
-    min-width: 36px;
-    font-size: 8px;
-    padding: 1px 4px;
+  .record-all {
+    position: static;
+    transform: none;
+    margin-top: 0;
   }
 }
 

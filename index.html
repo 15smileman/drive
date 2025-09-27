@@ -25,38 +25,77 @@
       </div>
     </section>
 
-    <!-- 화살표 컨트롤 패드 - 자동차 화면 바로 아래 -->
-    <div class="mobile-control-pad">
-      <div class="control-pad-container">
-        <!-- 다시시작 버튼 -->
-        <button id="reset-btn-mobile" class="arrow-btn reset-btn large-btn" type="button">
-          <span class="arrow">↻</span>
-        </button>
+    <!-- 컨트롤과 도전 버튼들을 나란히 배치 -->
+    <div class="control-and-challenge-container">
+      <!-- 왼쪽 도전 버튼 그룹 -->
+      <div class="challenge-left-side">
+        <div class="challenge-item">
+          <button id="challenge-1" class="challenge-btn" data-area="1">1번</button>
+          <div class="time-record" id="time-record-1">--</div>
+        </div>
+        <div class="challenge-item">
+          <button id="challenge-2" class="challenge-btn" data-area="2">2번</button>
+          <div class="time-record" id="time-record-2">--</div>
+        </div>
+      </div>
 
-        <!-- 왼쪽 조향 -->
-        <button id="left-btn" class="arrow-btn left-btn" type="button">
-          <span class="arrow">◀</span>
-        </button>
-
-        <!-- 중앙 전진/후진 컨트롤 -->
-        <div class="vertical-controls">
-          <button id="forward-btn" class="arrow-btn forward-btn" type="button">
-            <span class="arrow">▲</span>
+      <!-- 기존 컨트롤 패드 (변경하지 않음) -->
+      <div class="mobile-control-pad">
+        <div class="control-pad-container">
+          <!-- 다시시작 버튼 -->
+          <button id="reset-btn-mobile" class="arrow-btn reset-btn large-btn" type="button">
+            <span class="arrow">↻</span>
           </button>
-          <button id="backward-btn" class="arrow-btn backward-btn" type="button">
-            <span class="arrow">▼</span>
+
+          <!-- 왼쪽 조향 -->
+          <button id="left-btn" class="arrow-btn left-btn" type="button">
+            <span class="arrow">◀</span>
+          </button>
+
+          <!-- 중앙 전진/후진 컨트롤 -->
+          <div class="vertical-controls">
+            <button id="forward-btn" class="arrow-btn forward-btn" type="button">
+              <span class="arrow">▲</span>
+            </button>
+            <button id="backward-btn" class="arrow-btn backward-btn" type="button">
+              <span class="arrow">▼</span>
+            </button>
+          </div>
+
+          <!-- 오른쪽 조향 -->
+          <button id="right-btn" class="arrow-btn right-btn" type="button">
+            <span class="arrow">▶</span>
+          </button>
+
+          <!-- 브레이크 버튼 -->
+          <button id="brake-btn" class="arrow-btn brake-btn large-btn" type="button">
+            <span class="arrow">■</span>
           </button>
         </div>
+      </div>
 
-        <!-- 오른쪽 조향 -->
-        <button id="right-btn" class="arrow-btn right-btn" type="button">
-          <span class="arrow">▶</span>
-        </button>
+      <!-- 오른쪽 도전 버튼 그룹 -->
+      <div class="challenge-right-side">
+        <div class="challenge-item">
+          <button id="challenge-3" class="challenge-btn" data-area="3">3번</button>
+          <div class="time-record" id="time-record-3">--</div>
+        </div>
+        <div class="challenge-item">
+          <button id="challenge-4" class="challenge-btn" data-area="4">4번</button>
+          <div class="time-record" id="time-record-4">--</div>
+        </div>
+        <div class="challenge-item">
+          <button id="challenge-all" class="challenge-btn active" data-area="all">시간</button>
+          <div class="time-record all-record" id="time-record-all">--</div>
+        </div>
+      </div>
+    </div>
 
-        <!-- 브레이크 버튼 -->
-        <button id="brake-btn" class="arrow-btn brake-btn large-btn" type="button">
-          <span class="arrow">■</span>
-        </button>
+    <!-- 성공 메시지 오버레이 -->
+    <div id="success-overlay" class="success-overlay hidden">
+      <div class="success-content">
+        <h2 id="success-title">🎉 주차 성공!</h2>
+        <p id="success-time">시간: 0.0초</p>
       </div>
     </div>
 

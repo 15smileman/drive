@@ -22,20 +22,39 @@ function initializeGame() {
   overlayMessage = document.getElementById('overlay-message');
   startGameBtn = document.getElementById('start-game-btn');
 
+  // 주차 도전 시스템 DOM 요소들
+  successOverlay = document.getElementById('success-overlay');
+  successTitle = document.getElementById('success-title');
+  successTime = document.getElementById('success-time');
+
   // 요소들이 존재하는지 확인
   if (!gameOverlay || !overlayTitle || !overlayMessage || !startGameBtn) {
     console.error('게임 오버레이 요소들을 찾을 수 없습니다.');
     return;
   }
 
+  if (!successOverlay || !successTitle || !successTime) {
+    console.error('주차 도전 시스템 요소들을 찾을 수 없습니다.');
+    return;
+  }
+
   // 시작 게임 버튼 이벤트 리스너
   startGameBtn.addEventListener('click', () => {
     console.log('시작 버튼 클릭됨'); // 디버깅용
-    startGame();
+
+    // 재시작 모드인지 확인 (충돌 후 재시작)
+    if (startGameBtn.classList.contains('restart')) {
+      restartFromCollision();
+    } else {
+      startGame();
+    }
   });
 
   // 컨트롤 버튼들도 초기화
   initializeControlButtons();
+
+  // 주차 도전 버튼들 초기화
+  initializeChallengeButtons();
 
   console.log('게임 초기화 완료'); // 디버깅용
 }
@@ -47,7 +66,10 @@ function initializeControlButtons() {
   if (resetBtn) {
     resetBtn.addEventListener('click', () => {
       if (game && gameStarted && !gameFailed) {
-        game.reset();
+        // 다시시작 버튼: 모든 기록 완전 초기화
+        game.reset(true);
+        resetAllTimeRecords();
+        startChallenge(); // 도전 재시작
       }
     });
   }
@@ -112,6 +134,21 @@ let lastTime = performance.now();
 // DOM 요소들 (페이지 로드 후 초기화)
 let gameOverlay, overlayTitle, overlayMessage, startGameBtn;
 
+// 주차 도전 시스템 변수들
+let currentChallenge = 'all'; // 기본값: 모두
+let challengeStartTime = null;
+let completedAreas = new Set();
+let lastCompletionTime = null; // 마지막 완료 시간 추적
+let nextAreaStartTime = null; // 다음 구역 측정 시작 시간 (구역을 벗어난 시점)
+let timeRecords = {
+  area1: null,
+  area2: null,
+  area3: null,
+  area4: null,
+  all: null
+};
+let successOverlay, successTitle, successTime;
+
 function startGame() {
   game = new Game();
   runtimeError = null;
@@ -121,6 +158,29 @@ function startGame() {
 
   // 오버레이 숨기기
   gameOverlay.classList.add('hidden');
+
+  // 주차 도전 시스템 시작
+  startChallenge();
+
+  lastTime = performance.now();
+  requestAnimationFrame(loop);
+}
+
+function restartFromCollision() {
+  if (!game) return;
+
+  // 차량 위치만 초기화 (기록은 유지)
+  game.reset(false); // fullReset = false
+  runtimeError = null;
+  gameStarted = true;
+  gameFailed = false;
+  running = true;
+
+  // 오버레이 숨기기
+  gameOverlay.classList.add('hidden');
+
+  // 다음 미완료 구역부터 시간 측정 재시작
+  nextAreaStartTime = performance.now();
 
   lastTime = performance.now();
   requestAnimationFrame(loop);
@@ -192,7 +252,12 @@ function Controls() {
     const action = keyMap[e.code];
     if (action) {
       if (action === 'reset') {
-        if (game) game.reset();
+        if (game) {
+          // 키보드 R키: 모든 기록 완전 초기화
+          game.reset(true);
+          resetAllTimeRecords();
+          startChallenge(); // 도전 재시작
+        }
         return;
       }
       this.state.set(action, true);
@@ -323,20 +388,46 @@ function Game() {
   this.cameraMode = 'top'; // 수직뷰 고정
   this.target = { x: 750, y: 200, width: 130, height: 200 }; // 가로폭을 150에서 130으로 축소
   this.leftTarget = { x: 70, y: 250, width: 200, height: 100 };
-  // 가운데 주차박스들 정의 (나중에 사용)
-  this.centerTargets = [];
-  // 주차 완료 상태 추적
+
+  // 가운데 주차박스들 정의 (2번, 3번 구역)
+  const leftEnd = this.leftTarget.x + this.leftTarget.width;
+  const rightStart = this.target.x;
+  const spacing = (rightStart - leftEnd) / 4;
+
+  const firstGuideX = leftEnd + spacing * 1;
+  const secondGuideX = leftEnd + spacing * 2;
+  const thirdGuideX = leftEnd + spacing * 3;
+  const firstBoxWidth = secondGuideX - firstGuideX - 20;
+  const secondBoxWidth = thirdGuideX - secondGuideX - 20;
+  const firstBoxX = firstGuideX + 10;
+  const secondBoxX = secondGuideX + 10;
+  const boxY = 300;
+  const boxHeight = 160;
+
+  this.centerTargets = [
+    { x: firstBoxX, y: boxY, width: firstBoxWidth, height: boxHeight },
+    { x: secondBoxX, y: boxY, width: secondBoxWidth, height: boxHeight }
+  ];
+  // 주차 완료 상태 추적 (실시간, 구역을 벗어나면 false로 변경)
   this.parkingCompleted = {
     area1: false, // T자 주차
     area2: false, // 첫 번째 가운데 주차
     area3: false, // 두 번째 가운데 주차
     area4: false  // 평행주차
   };
+
+  // 영구적인 주차 완료 기록 (한 번 성공하면 리셋되지 않음)
+  this.parkingAchieved = {
+    area1: false, // T자 주차
+    area2: false, // 첫 번째 가운데 주차
+    area3: false, // 두 번째 가운데 주차
+    area4: false  // 평행주차
+  };
   this.obstacles = buildObstacles();
-  this.reset();
+  this.reset(true); // 게임 생성 시에는 완전 초기화
 }
 
-Game.prototype.reset = function reset() {
+Game.prototype.reset = function reset(fullReset = false) {
   // T 주차 구역 옆에 차량 배치, 뒤쪽 끝이 가이드 라인 하단 근처에 오도록 위치 조정
   this.car = new Car({ x: 350, y: 420, heading: -Math.PI / 2 }); // 장애물과 안전거리 확보, 위쪽 방향
   this.elapsed = 0;
@@ -350,6 +441,16 @@ Game.prototype.reset = function reset() {
     area3: false, // 두 번째 가운데 주차
     area4: false  // 평행주차
   };
+
+  // fullReset이 true인 경우에만 영구적인 주차 기록 초기화
+  if (fullReset) {
+    this.parkingAchieved = {
+      area1: false, // T자 주차
+      area2: false, // 첫 번째 가운데 주차
+      area3: false, // 두 번째 가운데 주차
+      area4: false  // 평행주차
+    };
+  }
 };
 
 
@@ -522,8 +623,8 @@ Game.prototype.render = function render() {
 
   // 2번과 3번 주차 구역도 drawTarget으로 그리기 (색상 변경 효과 적용)
   if (this.centerTargets.length > 0) {
-    drawTarget(this.centerTargets[0], this.cameraMode, this.grade === '주차 성공' && inFirstCenter);
-    drawTarget(this.centerTargets[1], this.cameraMode, this.grade === '주차 성공' && inSecondCenter);
+    drawTarget(this.centerTargets[0], this.cameraMode, this.parkingCompleted.area2);
+    drawTarget(this.centerTargets[1], this.cameraMode, this.parkingCompleted.area3);
   }
   drawObstacles(this.obstacles, this.cameraMode);
   this.car.draw(ctx, this.cameraMode);
@@ -532,7 +633,10 @@ Game.prototype.render = function render() {
   this.drawCollisionBoxes();
 
   ctx.restore();
-  drawOverlays(this.grade, this.cameraMode, this.elapsed, this.car.speed, this.car.steerAngle, this.parkingCompleted);
+  drawOverlays(this.grade, this.cameraMode, this.elapsed, this.car.speed, this.car.steerAngle, this.parkingAchieved);
+
+  // 주차 도전 시스템 - 주차 성공 확인
+  checkParkingSuccess();
 };
 
 Game.prototype.drawBackground = function drawBackground() {
@@ -563,26 +667,6 @@ Game.prototype.drawBackground = function drawBackground() {
 
   ctx.restore();
 
-  // 가운데 주차박스들의 좌표 계산 (drawTarget으로 그리기 위해 좌표만 계산)
-  const firstGuideX = leftEnd + spacing * 1;
-  const secondGuideX = leftEnd + spacing * 2;
-  const firstBoxWidth = secondGuideX - firstGuideX - 20; // 양쪽에 10픽셀 여백
-  const firstBoxX = firstGuideX + 10;
-  const boxY = 300; // 자동차가 들어갈 수 있는 적절한 위치
-  const boxHeight = 160; // 자동차 길이(116) + 여유공간
-
-  // 두 번째 주차박스 (두 번째와 세 번째 가이드 라인 사이)
-  const thirdGuideX = leftEnd + spacing * 3;
-  const secondBoxWidth = thirdGuideX - secondGuideX - 20; // 양쪽에 10픽셀 여백
-  const secondBoxX = secondGuideX + 10;
-
-  // 가운데 주차박스들을 centerTargets에 저장 (주차 완료 체크용)
-  if (this.centerTargets.length === 0) {
-    this.centerTargets = [
-      { x: firstBoxX, y: boxY, width: firstBoxWidth, height: boxHeight },
-      { x: secondBoxX, y: boxY, width: secondBoxWidth, height: boxHeight }
-    ];
-  }
 
   // 주차 완료 상태 체크
   const car = this.car;
@@ -598,10 +682,36 @@ Game.prototype.drawBackground = function drawBackground() {
   const speedMps = Math.abs(car.speed / PIXELS_PER_METER);
   const isParked = speedMps < 0.14;
 
-  if (inLeftSlot && isParked) this.parkingCompleted.area1 = true;
-  if (inFirstCenter && isParked) this.parkingCompleted.area2 = true;
-  if (inSecondCenter && isParked) this.parkingCompleted.area3 = true;
-  if (inRightSlot && isParked) this.parkingCompleted.area4 = true;
+  // 이전 주차 상태 저장
+  const prevCompleted = { ...this.parkingCompleted };
+
+  // 각 구역별로 주차 상태 업데이트 (구역을 벗어나면 다시 false로 변경)
+  if (inLeftSlot && isParked) {
+    this.parkingCompleted.area1 = true;
+  } else if (!inLeftSlot) {
+    this.parkingCompleted.area1 = false;
+  }
+
+  if (inFirstCenter && isParked) {
+    this.parkingCompleted.area2 = true;
+  } else if (!inFirstCenter) {
+    this.parkingCompleted.area2 = false;
+  }
+
+  if (inSecondCenter && isParked) {
+    this.parkingCompleted.area3 = true;
+  } else if (!inSecondCenter) {
+    this.parkingCompleted.area3 = false;
+  }
+
+  if (inRightSlot && isParked) {
+    this.parkingCompleted.area4 = true;
+  } else if (!inRightSlot) {
+    this.parkingCompleted.area4 = false;
+  }
+
+  // 주차 상태 변화 감지 및 시간 측정 관리
+  this.handleParkingStateChange(prevCompleted, this.parkingCompleted);
 
   // 주차구역 번호 표시
   ctx.save();
@@ -616,14 +726,14 @@ Game.prototype.drawBackground = function drawBackground() {
   ctx.fillText('1', leftTargetCenterX, leftTargetCenterY);
 
   // 2번: 첫 번째 가운데 주차박스
-  const firstBoxCenterX = firstBoxX + firstBoxWidth / 2;
-  const firstBoxCenterY = boxY + boxHeight / 2;
+  const firstBoxCenterX = this.centerTargets[0].x + this.centerTargets[0].width / 2;
+  const firstBoxCenterY = this.centerTargets[0].y + this.centerTargets[0].height / 2;
   ctx.fillStyle = this.parkingCompleted.area2 ? '#4ade80' : '#f87171';
   ctx.fillText('2', firstBoxCenterX, firstBoxCenterY);
 
   // 3번: 두 번째 가운데 주차박스
-  const secondBoxCenterX = secondBoxX + secondBoxWidth / 2;
-  const secondBoxCenterY = boxY + boxHeight / 2;
+  const secondBoxCenterX = this.centerTargets[1].x + this.centerTargets[1].width / 2;
+  const secondBoxCenterY = this.centerTargets[1].y + this.centerTargets[1].height / 2;
   ctx.fillStyle = this.parkingCompleted.area3 ? '#4ade80' : '#f87171';
   ctx.fillText('3', secondBoxCenterX, secondBoxCenterY);
 
@@ -838,6 +948,62 @@ Game.prototype.projectPolygon = function projectPolygon(polygon, axis) {
   }
 
   return { min, max };
+};
+
+// 주차 상태 변화 감지 및 시간 측정 관리
+Game.prototype.handleParkingStateChange = function handleParkingStateChange(prevCompleted, currentCompleted) {
+  // 각 구역별로 상태 변화 확인
+  const areas = ['area1', 'area2', 'area3', 'area4'];
+
+  for (const area of areas) {
+    const wasCompleted = prevCompleted[area];
+    const isCompleted = currentCompleted[area];
+
+    // 구역이 완료됨 (false → true): 해당 구역의 시간 기록
+    if (!wasCompleted && isCompleted) {
+      // 영구적인 주차 기록 업데이트 (한 번 성공하면 계속 유지)
+      this.parkingAchieved[area] = true;
+
+      if (nextAreaStartTime) {
+        const currentTime = performance.now();
+        const areaTime = (currentTime - nextAreaStartTime) / 1000;
+        const areaNumber = area.replace('area', '');
+
+        // 시간 기록 저장 및 표시
+        timeRecords[area] = areaTime;
+        updateTimeDisplay(area, areaTime);
+
+        console.log(`${areaNumber}번 주차 성공! 시간: ${areaTime.toFixed(1)}초`);
+
+        // 모두 도전에서 다음 미완료 구역이 있다면 시간 측정 시작
+        if (currentChallenge === 'all') {
+          const nextArea = this.findNextIncompleteArea();
+          if (nextArea) {
+            nextAreaStartTime = currentTime;
+            console.log(`다음 구역 ${nextArea}번 시간 측정 시작`);
+          }
+        }
+      }
+    }
+
+    // 구역을 벗어남 (true → false): 다음 구역의 시간 측정 시작
+    if (wasCompleted && !isCompleted) {
+      nextAreaStartTime = performance.now();
+      const areaNumber = area.replace('area', '');
+      console.log(`${areaNumber}번 구역을 벗어남 - 다음 구역 시간 측정 시작`);
+    }
+  }
+};
+
+// 다음 미완료 구역 찾기
+Game.prototype.findNextIncompleteArea = function findNextIncompleteArea() {
+  const areas = ['area1', 'area2', 'area3', 'area4'];
+  for (const area of areas) {
+    if (!this.parkingAchieved[area]) {
+      return area.replace('area', '');
+    }
+  }
+  return null; // 모든 구역 완료
 };
 
 function Car({ x, y, heading }) {
@@ -1171,6 +1337,217 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('DOM 로드 완료');
   initializeGame();
 });
+
+// 주차 도전 시스템 함수들
+function initializeChallengeButtons() {
+  const challengeButtons = document.querySelectorAll('.challenge-btn');
+
+  challengeButtons.forEach(button => {
+    button.addEventListener('click', () => {
+      // 모든 버튼에서 active 클래스 제거
+      challengeButtons.forEach(btn => btn.classList.remove('active'));
+      // 클릭된 버튼에 active 클래스 추가
+      button.classList.add('active');
+
+      // 현재 도전 모드 설정
+      currentChallenge = button.dataset.area;
+      console.log(`주차 도전 모드 변경: ${currentChallenge}`);
+
+      // 개별 도전 모드(1,2,3,4번)를 선택한 경우 초기화
+      if (currentChallenge !== 'all') {
+        if (game) {
+          // 상태 옆 경과 시간 초기화
+          game.elapsed = 0;
+
+          // 자동차 위치 초기화
+          game.car = new Car({ x: 350, y: 420, heading: -Math.PI / 2 });
+          game.grade = '진행중';
+          game.finishCaptured = false;
+        }
+
+        // 전체 시간 기록도 초기화
+        timeRecords.all = null;
+        const allTimeElement = document.getElementById('time-record-all');
+        if (allTimeElement) {
+          allTimeElement.textContent = '--';
+          allTimeElement.classList.remove('completed');
+        }
+        console.log(`${currentChallenge}번 개별 도전 모드 - 자동차 위치, 경과 시간 및 전체 시간 초기화`);
+      }
+
+      // 도전 시작
+      startChallenge();
+    });
+  });
+}
+
+function resetAllTimeRecords() {
+  // 모든 시간 기록 초기화
+  timeRecords = {
+    area1: null,
+    area2: null,
+    area3: null,
+    area4: null,
+    all: null
+  };
+
+  // 화면에 표시된 시간들도 초기화
+  const timeElements = document.querySelectorAll('.time-record');
+  timeElements.forEach(element => {
+    element.textContent = '--';
+    element.classList.remove('completed');
+  });
+
+  console.log('모든 시간 기록이 초기화되었습니다.');
+}
+
+function startChallenge() {
+  challengeStartTime = performance.now();
+  lastCompletionTime = challengeStartTime; // 첫 번째 구역을 위한 시작 시간
+  nextAreaStartTime = challengeStartTime; // 도전 시작부터 시간 측정 시작
+  completedAreas.clear();
+
+  // 개별 구역 도전인 경우 해당 구역의 시간 기록 초기화
+  if (currentChallenge !== 'all') {
+    const targetArea = `area${currentChallenge}`;
+    if (timeRecords[targetArea]) {
+      delete timeRecords[targetArea];
+    }
+  }
+
+  // 게임이 실행 중이라면 주차 상태 초기화
+  if (game) {
+    game.parkingCompleted = {
+      area1: false,
+      area2: false,
+      area3: false,
+      area4: false
+    };
+
+    // 영구적인 주차 기록도 초기화
+    game.parkingAchieved = {
+      area1: false,
+      area2: false,
+      area3: false,
+      area4: false
+    };
+  }
+
+  console.log(`${currentChallenge} 주차 도전 시작!`);
+}
+
+function checkParkingSuccess() {
+  if (!game || !challengeStartTime) return;
+
+  // 현재 주차 완료된 구역들 확인
+  const currentCompleted = new Set();
+  if (game.parkingCompleted.area1) currentCompleted.add('area1');
+  if (game.parkingCompleted.area2) currentCompleted.add('area2');
+  if (game.parkingCompleted.area3) currentCompleted.add('area3');
+  if (game.parkingCompleted.area4) currentCompleted.add('area4');
+
+  // 새로 완료된 구역이 있는지 확인 (도전 완료 체크를 위해서만)
+  for (const area of currentCompleted) {
+    if (!completedAreas.has(area)) {
+      completedAreas.add(area);
+      // 시간 기록은 handleParkingStateChange에서 처리하므로 onAreaCompleted 호출 제거
+    }
+  }
+
+  // 도전 완료 확인
+  checkChallengeComplete();
+}
+
+function onAreaCompleted(areaNumber) {
+  if (!challengeStartTime || !lastCompletionTime) return;
+
+  const currentTime = performance.now();
+  const areaKey = `area${areaNumber}`;
+
+  // 이미 기록된 구역이 아닌 경우에만 기록
+  if (!timeRecords[areaKey]) {
+    // 개별 구역 완료 시간 = 현재 시간 - 마지막 완료 시간
+    const individualTime = (currentTime - lastCompletionTime) / 1000;
+
+    timeRecords[areaKey] = individualTime;
+    updateTimeDisplay(areaKey, individualTime);
+
+    // 다음 구역을 위해 마지막 완료 시간 업데이트
+    lastCompletionTime = currentTime;
+
+    console.log(`${areaNumber}번 주차 구역 완료! 개별 시간: ${individualTime.toFixed(1)}초`);
+  }
+}
+
+function checkChallengeComplete() {
+  let isComplete = false;
+  let completionMessage = '';
+  let totalTime = 0;
+
+  if (currentChallenge === 'all') {
+    // 모든 구역 완료 확인 (한 번만 실행되도록)
+    if (completedAreas.size === 4 && !timeRecords.all) {
+      // 모든 개별 구역의 시간이 기록되었는지 확인
+      const allTimesRecorded = timeRecords.area1 && timeRecords.area2 && timeRecords.area3 && timeRecords.area4;
+
+      if (allTimesRecorded) {
+        isComplete = true;
+        completionMessage = '🎉 모든 주차 완료!';
+        // 전체 도전의 경우 각 구역 시간의 합으로 계산
+        totalTime = (timeRecords.area1 || 0) + (timeRecords.area2 || 0) + (timeRecords.area3 || 0) + (timeRecords.area4 || 0);
+        timeRecords.all = totalTime;
+        updateTimeDisplay('all', totalTime);
+      }
+    }
+  } else {
+    // 특정 구역 완료 확인 (한 번만 실행되도록)
+    const targetArea = `area${currentChallenge}`;
+    if (completedAreas.has(targetArea) && timeRecords[targetArea]) {
+      isComplete = true;
+      completionMessage = `🎉 ${currentChallenge}번 주차 성공!`;
+      // 개별 구역의 경우 개별 시간 사용
+      totalTime = timeRecords[targetArea];
+    }
+  }
+
+  if (isComplete && totalTime > 0) {
+    showSuccessMessage(completionMessage, totalTime);
+    // 도전 완료 후 타이머 리셋
+    challengeStartTime = null;
+    lastCompletionTime = null;
+  }
+}
+
+function showSuccessMessage(message, time) {
+  if (!successOverlay || !successTitle || !successTime) return;
+
+  // 시간이 유효하지 않은 경우 기본값 사용
+  const displayTime = (time && time > 0) ? time.toFixed(1) : '0.0';
+
+  successTitle.textContent = message;
+  successTime.textContent = `시간: ${displayTime}초`;
+
+  successOverlay.classList.remove('hidden');
+
+  // 3초 후 자동으로 숨기기
+  setTimeout(() => {
+    successOverlay.classList.add('hidden');
+    // 도전 완료 후 새로운 도전 준비
+    console.log('성공 메시지 숨김 완료, 게임 계속 진행');
+  }, 3000);
+}
+
+function updateTimeDisplay(area, time) {
+  const recordElement = document.getElementById(`time-record-${area.replace('area', '')}`);
+  if (recordElement) {
+    // 라벨 제거하고 시간만 표시
+    recordElement.textContent = `${time.toFixed(1)}초`;
+    recordElement.classList.add('completed');
+  }
+}
+
+// 게임 루프에서 주차 성공 확인을 위해 기존 render 함수를 수정
+// (render 함수 끝에 checkParkingSuccess() 호출 추가)
 
 // 혹시 DOMContentLoaded가 이미 지났을 경우를 대비
 if (document.readyState === 'loading') {
