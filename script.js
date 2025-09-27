@@ -74,26 +74,13 @@ function initializeControlButtons() {
     });
   }
 
-  // 브레이크 버튼 (기존)
-  const brakeBtn = document.getElementById('brake-btn');
-  if (brakeBtn) {
-    brakeBtn.addEventListener('click', () => {
-      if (controls) {
-        controls.state.set('brake', true);
-        setTimeout(() => {
-          controls.state.set('brake', false);
-        }, 200);
-      }
-    });
-  }
-
-
-  // 화살표 버튼들
+  // 화살표 버튼들 및 브레이크 버튼
   const arrowButtons = {
     forward: document.getElementById('forward-btn'),
     backward: document.getElementById('backward-btn'),
     left: document.getElementById('left-btn'),
-    right: document.getElementById('right-btn')
+    right: document.getElementById('right-btn'),
+    brake: document.getElementById('brake-btn')
   };
 
   Object.keys(arrowButtons).forEach(direction => {
