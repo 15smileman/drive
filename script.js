@@ -123,6 +123,7 @@ let gameOverlay, overlayTitle, overlayMessage, startGameBtn;
 
 // 주차 도전 시스템 변수들
 let currentChallenge = 'all'; // 기본값: 모두
+let consecutiveSuccessMode = false; // 시간 버튼용 연속 성공 모드
 let challengeStartTime = null;
 let completedAreas = new Set();
 let lastCompletionTime = null; // 마지막 완료 시간 추적
@@ -188,6 +189,13 @@ function showGameOver(title, message, isRestart = false) {
 function failGame() {
   if (!gameFailed) {
     gameFailed = true;
+
+    // 연속 성공 모드(시간 버튼)인 경우 완전 리셋
+    if (consecutiveSuccessMode && currentChallenge === 'all') {
+      console.log('연속 성공 챌린지 실패 - 처음부터 다시 시작');
+      resetConsecutiveChallenge();
+    }
+
     setTimeout(() => {
       showGameOver('주차 실패!', '충돌이 발생했습니다. 다시 시도해보세요.', true);
     }, 1000); // 1초 후에 실패 메시지 표시
@@ -956,9 +964,13 @@ Game.prototype.handleParkingStateChange = function handleParkingStateChange(prev
         const areaTime = (currentTime - nextAreaStartTime) / 1000;
         const areaNumber = area.replace('area', '');
 
-        // 시간 기록 저장 및 표시
+        // 시간 기록 저장
         timeRecords[area] = areaTime;
-        updateTimeDisplay(area, areaTime);
+
+        // 연속 성공 모드가 아닐 때만 개별 시간 표시
+        if (!consecutiveSuccessMode || currentChallenge !== 'all') {
+          updateTimeDisplay(area, areaTime);
+        }
 
         console.log(`${areaNumber}번 주차 성공! 시간: ${areaTime.toFixed(1)}초`);
 
@@ -1338,7 +1350,26 @@ function initializeChallengeButtons() {
 
       // 현재 도전 모드 설정
       currentChallenge = button.dataset.area;
-      console.log(`주차 도전 모드 변경: ${currentChallenge}`);
+
+      // 시간 버튼(all)인 경우 연속 성공 모드 활성화 및 초기화
+      if (currentChallenge === 'all') {
+        consecutiveSuccessMode = true;
+
+        if (game) {
+          // 상태 옆 경과 시간 초기화
+          game.elapsed = 0;
+
+          // 자동차 위치 초기화
+          game.car = new Car({ x: 350, y: 420, heading: -Math.PI / 2 });
+          game.grade = '진행중';
+          game.finishCaptured = false;
+        }
+
+        console.log(`연속 성공 챌린지 모드 활성화 - 자동차 위치 및 시간 초기화`);
+      } else {
+        consecutiveSuccessMode = false;
+        console.log(`주차 도전 모드 변경: ${currentChallenge}`);
+      }
 
       // 개별 도전 모드(1,2,3,4번)를 선택한 경우 초기화
       if (currentChallenge !== 'all') {
@@ -1388,11 +1419,58 @@ function resetAllTimeRecords() {
   console.log('모든 시간 기록이 초기화되었습니다.');
 }
 
+function resetConsecutiveChallenge() {
+  // 연속 성공 챌린지 완전 리셋
+  if (game) {
+    // 모든 주차 상태 초기화
+    game.parkingCompleted = {
+      area1: false, area2: false, area3: false, area4: false
+    };
+    game.parkingAchieved = {
+      area1: false, area2: false, area3: false, area4: false
+    };
+  }
+
+  // 시간 기록도 초기화 (연속 성공에서만 all 기록)
+  timeRecords = {
+    area1: null,
+    area2: null,
+    area3: null,
+    area4: null,
+    all: null
+  };
+
+  // 화면에 표시된 시간들도 초기화 (개별 시간들은 숨김)
+  ['area1', 'area2', 'area3', 'area4'].forEach(area => {
+    const timeElement = document.getElementById(`time-record-${area.replace('area', '')}`);
+    if (timeElement) {
+      timeElement.textContent = '--';
+      timeElement.classList.remove('completed');
+    }
+  });
+
+  // 전체 시간은 그대로 표시
+  const allTimeElement = document.getElementById('time-record-all');
+  if (allTimeElement) {
+    allTimeElement.textContent = '--';
+    allTimeElement.classList.remove('completed');
+  }
+
+  console.log('연속 성공 챌린지 리셋 완료');
+}
+
 function startChallenge() {
   challengeStartTime = performance.now();
   lastCompletionTime = challengeStartTime; // 첫 번째 구역을 위한 시작 시간
   nextAreaStartTime = challengeStartTime; // 도전 시작부터 시간 측정 시작
   completedAreas.clear();
+
+  // 연속 성공 모드인 경우 완전한 초기화
+  if (consecutiveSuccessMode && currentChallenge === 'all') {
+    resetConsecutiveChallenge();
+    console.log(`연속 성공 챌린지 시작! 1번부터 4번까지 연속으로 성공해야 합니다.`);
+    return;
+  }
 
   // 개별 구역 도전인 경우 해당 구역의 시간 기록 초기화
   if (currentChallenge !== 'all') {
@@ -1411,13 +1489,15 @@ function startChallenge() {
       area4: false
     };
 
-    // 영구적인 주차 기록도 초기화
-    game.parkingAchieved = {
-      area1: false,
-      area2: false,
-      area3: false,
-      area4: false
-    };
+    // 영구적인 주차 기록도 초기화 (연속 성공 모드가 아닌 경우)
+    if (!consecutiveSuccessMode) {
+      game.parkingAchieved = {
+        area1: false,
+        area2: false,
+        area3: false,
+        area4: false
+      };
+    }
   }
 
   console.log(`${currentChallenge} 주차 도전 시작!`);
@@ -1472,18 +1552,31 @@ function checkChallengeComplete() {
   let totalTime = 0;
 
   if (currentChallenge === 'all') {
-    // 모든 구역 완료 확인 (한 번만 실행되도록)
-    if (completedAreas.size === 4 && !timeRecords.all) {
-      // 모든 개별 구역의 시간이 기록되었는지 확인
-      const allTimesRecorded = timeRecords.area1 && timeRecords.area2 && timeRecords.area3 && timeRecords.area4;
-
-      if (allTimesRecorded) {
+    if (consecutiveSuccessMode) {
+      // 연속 성공 모드: 1번부터 4번까지 순서대로 연속 성공했는지 체크
+      const consecutiveSuccess = checkConsecutiveSuccess();
+      if (consecutiveSuccess && !timeRecords.all) {
         isComplete = true;
-        completionMessage = '🎉 모든 주차 완료!';
+        completionMessage = '🎉 연속 주차 성공!';
         // 전체 도전의 경우 각 구역 시간의 합으로 계산
         totalTime = (timeRecords.area1 || 0) + (timeRecords.area2 || 0) + (timeRecords.area3 || 0) + (timeRecords.area4 || 0);
         timeRecords.all = totalTime;
         updateTimeDisplay('all', totalTime);
+      }
+    } else {
+      // 기존 모든 구역 완료 확인 (한 번만 실행되도록)
+      if (completedAreas.size === 4 && !timeRecords.all) {
+        // 모든 개별 구역의 시간이 기록되었는지 확인
+        const allTimesRecorded = timeRecords.area1 && timeRecords.area2 && timeRecords.area3 && timeRecords.area4;
+
+        if (allTimesRecorded) {
+          isComplete = true;
+          completionMessage = '🎉 모든 주차 완료!';
+          // 전체 도전의 경우 각 구역 시간의 합으로 계산
+          totalTime = (timeRecords.area1 || 0) + (timeRecords.area2 || 0) + (timeRecords.area3 || 0) + (timeRecords.area4 || 0);
+          timeRecords.all = totalTime;
+          updateTimeDisplay('all', totalTime);
+        }
       }
     }
   } else {
@@ -1503,6 +1596,26 @@ function checkChallengeComplete() {
     challengeStartTime = null;
     lastCompletionTime = null;
   }
+}
+
+function checkConsecutiveSuccess() {
+  // 연속 성공 체크: 1번부터 4번까지 모두 영구적으로 달성되었고, 중간에 실패 없이 순서대로 성공했는지 확인
+  if (!game) return false;
+
+  const allAchieved = game.parkingAchieved.area1 &&
+                     game.parkingAchieved.area2 &&
+                     game.parkingAchieved.area3 &&
+                     game.parkingAchieved.area4;
+
+  const allTimesRecorded = timeRecords.area1 && timeRecords.area2 && timeRecords.area3 && timeRecords.area4;
+
+  console.log('연속 성공 체크:', {
+    allAchieved,
+    allTimesRecorded,
+    timeRecords: { ...timeRecords }
+  });
+
+  return allAchieved && allTimesRecorded;
 }
 
 function showSuccessMessage(message, time) {
