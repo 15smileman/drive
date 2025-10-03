@@ -138,6 +138,8 @@ let gameOverlay, overlayTitle, overlayMessage, startGameBtn;
 let currentChallenge = 'outer'; // 기본값: 외곽 트랙
 let consecutiveMode = false; // 연속 주행 모드 (전체 버튼)
 let challengeStartTime = null;
+let lastCompletionTime = null; // 마지막 완료 시간 추적
+let nextCourseStartTime = null; // 다음 코스 측정 시작 시간
 let completedCourses = new Set();
 let timeRecords = {
   outer: null,
@@ -194,6 +196,13 @@ function failGame(reason) {
     gameFailed = true;
     const message = reason || game.grade || '차선을 이탈했습니다';
     console.log(`❌ 게임 실패: ${message}`);
+
+    // 연속 모드(전체 버튼)인 경우 완전 리셋
+    if (consecutiveMode && currentChallenge === 'all') {
+      console.log('연속 주행 챌린지 실패 - 처음부터 다시 시작');
+      resetConsecutiveChallenge();
+    }
+
     setTimeout(() => {
       showGameOver('주행 실패!', `${message}. 다시 시도해보세요.`, true);
     }, 500);  // 1000 → 500ms로 단축
@@ -370,10 +379,15 @@ function Game() {
   this.currentCourse = currentChallenge;
   this.courseCompleted = false;
   this.lapProgress = 0; // 외곽 트랙 진행도 (0~1)
-  this.outerCompleted = false; // 주행1 완주 여부 (연속 모드용)
-  this.outer2Completed = false; // 주행2 완주 여부 (연속 모드용)
-  this.sCompleted = false; // S라인 완주 여부 (연속 모드용)
-  this.s2Completed = false; // S라인2 완주 여부 (연속 모드용)
+
+  // 코스별 완주 여부 (영구 기록 - 한 번 성공하면 계속 유지)
+  this.courseAchieved = {
+    outer: false,  // 주행1
+    outer2: false, // 주행2
+    s: false,      // S라인1
+    s2: false      // S라인2
+  };
+
   this.isClockwise = (currentChallenge === 'outer2'); // 시계방향 여부 (트랙2)
 
   // 신호등 시스템
@@ -523,7 +537,24 @@ Game.prototype.checkBoundaries = function checkBoundaries(car) {
   // 차선 이탈 감지
   const carPos = car.position;
 
-  if (currentChallenge === 'outer' || currentChallenge === 'outer2' || currentChallenge === 'all') {
+  // 전체 모드에서는 현재 진행 중인 코스만 체크
+  let checkOuterTrack = false;
+  let checkSTrack = false;
+
+  if (currentChallenge === 'outer' || currentChallenge === 'outer2') {
+    checkOuterTrack = true;
+  } else if (currentChallenge === 's' || currentChallenge === 's2') {
+    checkSTrack = true;
+  } else if (currentChallenge === 'all') {
+    // 전체 모드: 현재 진행 중인 코스만 체크
+    if (!this.courseAchieved.outer || !this.courseAchieved.outer2) {
+      checkOuterTrack = true;
+    } else {
+      checkSTrack = true;
+    }
+  }
+
+  if (checkOuterTrack) {
     // 외곽 둥근 사각형 트랙 차선 체크
     const dx = carPos.x - TRACK.outer.centerX;
     const dy = carPos.y - TRACK.outer.centerY;
@@ -594,7 +625,7 @@ Game.prototype.checkBoundaries = function checkBoundaries(car) {
     }
   }
 
-  if (currentChallenge === 's' || currentChallenge === 's2' || currentChallenge === 'all') {
+  if (checkSTrack) {
     // S자 트랙 차선 체크
     const laneWidth = 100;
     const maxDistance = laneWidth / 2;  // 중심선에서 최대 50px까지 허용
@@ -665,7 +696,24 @@ Game.prototype.getDistanceToSTrack = function getDistanceToSTrack(x, y) {
 Game.prototype.evaluate = function evaluate() {
   const car = this.car;
 
-  if (currentChallenge === 'outer' || currentChallenge === 'outer2' || currentChallenge === 'all') {
+  // 전체 모드에서는 현재 진행 중인 코스만 평가
+  let evaluateOuterTrack = false;
+  let evaluateSTrack = false;
+
+  if (currentChallenge === 'outer' || currentChallenge === 'outer2') {
+    evaluateOuterTrack = true;
+  } else if (currentChallenge === 's' || currentChallenge === 's2') {
+    evaluateSTrack = true;
+  } else if (currentChallenge === 'all') {
+    // 전체 모드: 현재 진행 중인 코스만 평가
+    if (!this.courseAchieved.outer || !this.courseAchieved.outer2) {
+      evaluateOuterTrack = true;
+    } else {
+      evaluateSTrack = true;
+    }
+  }
+
+  if (evaluateOuterTrack) {
     // 도착 주차 구역 체크 (90도 회전 - 가로 방향)
     const finishX = TRACK.outer.centerX;
     const finishY = 450;  // 차량 시작 위치와 동일 (차량 중앙 기준)
@@ -834,17 +882,26 @@ Game.prototype.evaluate = function evaluate() {
     }
   }
 
-  if (currentChallenge === 's' || currentChallenge === 's2' || currentChallenge === 'all') {
+  if (evaluateSTrack) {
     // S자 트랙 주차 구역 체크
     let parkingX, parkingY, targetHeading;
 
+    // 전체 모드에서 현재 어느 S라인인지 확인
+    let isS2 = false;
     if (currentChallenge === 's2') {
+      isS2 = true;
+    } else if (currentChallenge === 'all') {
+      // 전체 모드: S라인1 완료했으면 S라인2
+      isS2 = this.courseAchieved.s;
+    }
+
+    if (isS2) {
       // S라인2: 출발 박스(오른쪽 아래)가 목적지
       parkingX = 800;
       parkingY = 500;
       targetHeading = Math.PI / 2;  // 90도 (아래쪽)
     } else {
-      // S라인 또는 전체: 도착 박스(왼쪽 위)가 목적지
+      // S라인1: 도착 박스(왼쪽 위)가 목적지
       parkingX = 80;
       parkingY = 65;
       targetHeading = -Math.PI / 2;  // -90도 (위쪽)
@@ -877,7 +934,11 @@ Game.prototype.evaluate = function evaluate() {
     // 완주 처리
     if (readyToComplete && !this.courseCompleted) {
       this.courseCompleted = true;
-      this.grade = '완주 성공';
+
+      // 연속 모드가 아닐 때만 성공 메시지 표시
+      if (!consecutiveMode) {
+        this.grade = '완주 성공';
+      }
 
       // 도전 완료 체크 (즉시 시간 기록)
       checkCourseComplete();
@@ -915,13 +976,31 @@ Game.prototype.drawTrack = function drawTrack() {
   ctx.lineWidth = 4;
 
   // 도전 모드에 따라 다른 트랙 표시
-  if (currentChallenge === 'outer' || currentChallenge === 'outer2' || currentChallenge === 'all') {
-    // 원형 트랙 그리기
+  let showOuterTrack = false;
+  let showSTrack = false;
+
+  if (currentChallenge === 'outer' || currentChallenge === 'outer2') {
+    // 개별 주행 모드
+    showOuterTrack = true;
+  } else if (currentChallenge === 's' || currentChallenge === 's2') {
+    // 개별 S라인 모드
+    showSTrack = true;
+  } else if (currentChallenge === 'all') {
+    // 전체 모드: 현재 진행 중인 코스만 표시
+    if (!this.courseAchieved.outer || !this.courseAchieved.outer2) {
+      // 주행1 또는 주행2 진행 중
+      showOuterTrack = true;
+    } else {
+      // S라인1 또는 S라인2 진행 중
+      showSTrack = true;
+    }
+  }
+
+  if (showOuterTrack) {
     this.drawOvalTrack();
   }
 
-  if (currentChallenge === 's' || currentChallenge === 's2' || currentChallenge === 'all') {
-    // S자 트랙 그리기
+  if (showSTrack) {
     this.drawSTrack();
   }
 
@@ -1193,8 +1272,17 @@ Game.prototype.drawSTrack = function drawSTrack() {
   ctx.stroke();
 
   // S라인2인 경우 출발/도착 글자 반대
-  const topBoxText = (currentChallenge === 's2') ? '출발' : '도착';
-  const bottomBoxText = (currentChallenge === 's2') ? '도착' : '출발';
+  // 전체 모드에서는 현재 진행 중인 코스에 따라 결정
+  let isS2Display = false;
+  if (currentChallenge === 's2') {
+    isS2Display = true;
+  } else if (currentChallenge === 'all' && this.courseAchieved.s) {
+    // 전체 모드에서 S라인1 완료했으면 S라인2 표시
+    isS2Display = true;
+  }
+
+  const topBoxText = isS2Display ? '출발' : '도착';
+  const bottomBoxText = isS2Display ? '도착' : '출발';
 
   // 왼쪽 위 박스 텍스트 (주차 박스 중앙에 배치)
   ctx.fillStyle = goalColor;
@@ -1463,15 +1551,22 @@ function initializeChallengeButtons() {
         if (game) {
           // 경과 시간 초기화
           game.elapsed = 0;
-          // 외곽 트랙부터 시작
+          // 주행1부터 시작 (반시계방향)
           game.car = new Car({ x: 480, y: 450, heading: 0 });
           game.grade = '진행중';
           game.courseCompleted = false;
-          game.outerCompleted = false;
-          game.sCompleted = false;
+          game.isClockwise = false; // 주행1은 반시계방향
+
+          // courseAchieved 초기화
+          game.courseAchieved = {
+            outer: false,
+            outer2: false,
+            s: false,
+            s2: false
+          };
         }
 
-        console.log(`연속 주행 모드 활성화 - 외곽 → S자 순서로 완주`);
+        console.log(`연속 주행 모드 활성화 - 주행1 → 주행2 → S라인1 → S라인2 순서로 완주`);
       } else {
         consecutiveMode = false;
         console.log(`개별 코스 모드: ${currentChallenge}`);
@@ -1516,9 +1611,44 @@ function resetAllTimeRecords() {
   console.log('모든 시간 기록이 초기화되었습니다.');
 }
 
+function resetConsecutiveChallenge() {
+  // 연속 주행 챌린지 완전 리셋
+  if (game) {
+    // 모든 코스 완주 상태 초기화
+    game.courseCompleted = false;
+    game.courseAchieved = {
+      outer: false,
+      outer2: false,
+      s: false,
+      s2: false
+    };
+  }
+
+  // 시간 기록도 초기화 (연속 모드에서만 all 기록)
+  timeRecords = {
+    outer: null,
+    outer2: null,
+    s: null,
+    s2: null,
+    all: null
+  };
+
+  console.log('연속 주행 챌린지 리셋 완료');
+}
+
 function startChallenge() {
   challengeStartTime = performance.now();
+  lastCompletionTime = challengeStartTime; // 첫 번째 코스를 위한 시작 시간
+  nextCourseStartTime = challengeStartTime; // 도전 시작부터 시간 측정 시작
   completedCourses.clear();
+
+  // 연속 모드인 경우 완전한 초기화
+  if (consecutiveMode && currentChallenge === 'all') {
+    resetConsecutiveChallenge();
+    console.log(`연속 주행 챌린지 시작! 주행1→주행2→S라인1→S라인2 순서로 완주해야 합니다.`);
+    return;
+  }
+
   console.log(`${currentChallenge} 코스 도전 시작!`);
 }
 
@@ -1527,14 +1657,21 @@ function checkCourseComplete() {
   if (!game || !challengeStartTime) return;
 
   const currentTime = performance.now();
-  const courseTime = (currentTime - challengeStartTime) / 1000;
 
-  // 연속 주행 모드인 경우 (주행1 → 주행2 → S라인 → S라인2)
-  if (consecutiveMode) {
-    // 1단계: 주행1 완주 체크
-    if (!game.outerCompleted && currentChallenge === 'all') {
-      game.outerCompleted = true;
-      console.log('✅ 1/4 주행1 완주! 주행2로 이동...');
+  // 연속 주행 모드인 경우 (주행1 → 주행2 → S라인1 → S라인2)
+  if (consecutiveMode && currentChallenge === 'all') {
+    // 현재 완주한 코스의 개별 시간 계산
+    let individualTime = 0;
+    if (nextCourseStartTime) {
+      individualTime = (currentTime - nextCourseStartTime) / 1000;
+    }
+
+    // 1단계: 주행1 완주 → 주행2 시작
+    if (!game.courseAchieved.outer) {
+      game.courseAchieved.outer = true;
+      timeRecords.outer = individualTime;
+      console.log(`✅ 1/4 주행1 완주! 시간: ${individualTime.toFixed(1)}초`);
+      console.log('주행2로 이동...');
 
       // 주행2 시작 위치로 이동 (시계방향)
       game.car = new Car({ x: 480, y: 450, heading: Math.PI });
@@ -1548,45 +1685,88 @@ function checkCourseComplete() {
         { id: 4, x: 320, y: 445, passed: false, lightId: 4, wasOnStopLine: false, approachFrom: 'right' }
       ];
       game.currentActiveLightIndex = 3; // 4번부터 시작
+
+      // 트랙 거리 측정 초기화
+      game.trackStartPos = null;
+      game.trackDistance = 0;
+
+      // 신호등 재초기화 (랜덤으로 2개 선택)
+      game.trafficLights.forEach(light => {
+        light.red = false;
+        light.willBeRed = false;
+        light.justTurnedGreen = false;
+      });
+      const indices = [0, 1, 2, 3];
+      for (let i = indices.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [indices[i], indices[j]] = [indices[j], indices[i]];
+      }
+      game.trafficLights[indices[0]].willBeRed = true;
+      game.trafficLights[indices[1]].willBeRed = true;
+      console.log(`🎲 주행2 신호등 선택: ${indices[0] + 1}번, ${indices[1] + 1}번이 빨간불로 변경됩니다.`);
+
+      // 다음 코스 시간 측정 시작
+      nextCourseStartTime = currentTime;
+      lastCompletionTime = currentTime;
       return; // 계속 진행
     }
 
-    // 2단계: 주행2 완주 체크
-    if (game.outerCompleted && !game.outer2Completed && currentChallenge === 'all') {
-      game.outer2Completed = true;
-      console.log('✅ 2/4 주행2 완주! S라인1으로 이동...');
+    // 2단계: 주행2 완주 → S라인1 시작
+    if (game.courseAchieved.outer && !game.courseAchieved.outer2) {
+      game.courseAchieved.outer2 = true;
+      timeRecords.outer2 = individualTime;
+      console.log(`✅ 2/4 주행2 완주! 시간: ${individualTime.toFixed(1)}초`);
+      console.log('S라인1으로 이동...');
 
       // S라인1 시작 위치로 이동
       game.car = new Car({ x: 800, y: 500, heading: -Math.PI / 2 });
       game.courseCompleted = false;
       game.sTrackReachedGoal = false;
+
+      // 다음 코스 시간 측정 시작
+      nextCourseStartTime = currentTime;
+      lastCompletionTime = currentTime;
       return; // 계속 진행
     }
 
-    // 3단계: S라인1 완주 체크
-    if (game.outer2Completed && !game.sCompleted && currentChallenge === 'all') {
-      game.sCompleted = true;
-      console.log('✅ 3/4 S라인1 완주! S라인2로 이동...');
+    // 3단계: S라인1 완주 → S라인2 시작
+    if (game.courseAchieved.outer2 && !game.courseAchieved.s) {
+      game.courseAchieved.s = true;
+      timeRecords.s = individualTime;
+      console.log(`✅ 3/4 S라인1 완주! 시간: ${individualTime.toFixed(1)}초`);
+      console.log('S라인2로 이동...');
 
       // S라인2 시작 위치로 이동
       game.car = new Car({ x: 80, y: 65, heading: Math.PI / 2 });
       game.courseCompleted = false;
       game.sTrackReachedGoal = false;
+
+      // 다음 코스 시간 측정 시작
+      nextCourseStartTime = currentTime;
+      lastCompletionTime = currentTime;
       return; // 계속 진행
     }
 
-    // 4단계: S라인2 완주 체크 (전체 완주)
-    if (game.sCompleted && !game.s2Completed && currentChallenge === 'all') {
-      game.s2Completed = true;
-      timeRecords.all = courseTime;
-      updateTimeDisplay('all', courseTime);
-      showSuccessMessage(`🎉 전체 코스 완주! (주행1→주행2→S라인→S라인2)`, courseTime);
+    // 4단계: S라인2 완주 → 전체 완주
+    if (game.courseAchieved.s && !game.courseAchieved.s2) {
+      game.courseAchieved.s2 = true;
+      timeRecords.s2 = individualTime;
+      console.log(`✅ 4/4 S라인2 완주! 시간: ${individualTime.toFixed(1)}초`);
+
+      // 전체 시간 계산 (각 코스 시간의 합)
+      const totalTime = (timeRecords.outer || 0) + (timeRecords.outer2 || 0) +
+                       (timeRecords.s || 0) + (timeRecords.s2 || 0);
+
+      timeRecords.all = totalTime;
+      updateTimeDisplay('all', totalTime);
+      showSuccessMessage(`🎉 전체 코스 완주! (주행1→주행2→S라인1→S라인2)`, totalTime);
       challengeStartTime = null; // 타이머 정지 (중복 호출 방지)
-      console.log(`✅ 4/4 S라인2 완주! 전체 완주 시간: ${courseTime.toFixed(1)}초`);
+      console.log(`전체 완주 시간: ${totalTime.toFixed(1)}초 (주행1: ${timeRecords.outer.toFixed(1)}s, 주행2: ${timeRecords.outer2.toFixed(1)}s, S라인1: ${timeRecords.s.toFixed(1)}s, S라인2: ${timeRecords.s2.toFixed(1)}s)`);
       return;
     }
   } else {
     // 개별 코스 모드
+    const courseTime = (currentTime - challengeStartTime) / 1000;
     timeRecords[currentChallenge] = courseTime;
     updateTimeDisplay(currentChallenge, courseTime);
     showSuccessMessage(`🎉 ${getCourseDisplayName(currentChallenge)} 완주!`, courseTime);
