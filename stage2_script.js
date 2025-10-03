@@ -1554,19 +1554,19 @@ function checkCourseComplete() {
     // 2단계: 주행2 완주 체크
     if (game.outerCompleted && !game.outer2Completed && currentChallenge === 'all') {
       game.outer2Completed = true;
-      console.log('✅ 2/4 주행2 완주! S라인으로 이동...');
+      console.log('✅ 2/4 주행2 완주! S라인1으로 이동...');
 
-      // S라인 시작 위치로 이동
+      // S라인1 시작 위치로 이동
       game.car = new Car({ x: 800, y: 500, heading: -Math.PI / 2 });
       game.courseCompleted = false;
       game.sTrackReachedGoal = false;
       return; // 계속 진행
     }
 
-    // 3단계: S라인 완주 체크
+    // 3단계: S라인1 완주 체크
     if (game.outer2Completed && !game.sCompleted && currentChallenge === 'all') {
       game.sCompleted = true;
-      console.log('✅ 3/4 S라인 완주! S라인2로 이동...');
+      console.log('✅ 3/4 S라인1 완주! S라인2로 이동...');
 
       // S라인2 시작 위치로 이동
       game.car = new Car({ x: 80, y: 65, heading: Math.PI / 2 });
@@ -1599,7 +1599,7 @@ function getCourseDisplayName(course) {
   const names = {
     outer: '주행1',
     outer2: '주행2',
-    s: 'S라인',
+    s: 'S라인1',
     s2: 'S라인2',
     all: '전체 코스'
   };
