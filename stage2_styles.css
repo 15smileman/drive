@@ -426,8 +426,8 @@ footer {
   line-height: 1.4;
 }
 
-/* 주차 순서 섹션 스타일 */
-.parking-order {
+/* 코스 순서 섹션 스타일 */
+.course-order {
   margin: 2rem 0;
   padding: 1.5rem;
   background: linear-gradient(135deg, #f8fafc, #e2e8f0);
@@ -436,7 +436,7 @@ footer {
   text-align: center;
 }
 
-.parking-order h2 {
+.course-order h2 {
   color: #1e293b;
   margin-bottom: 1rem;
   text-align: center;
@@ -480,6 +480,10 @@ footer {
 
 .order-number.green {
   background: #4ade80;
+}
+
+.order-number.blue {
+  background: #3b82f6;
 }
 
 .order-content h3 {
@@ -626,8 +630,8 @@ footer {
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
-  min-width: 42px;
-  width: 42px; /* 고정 너비 */
+  min-width: 60px;
+  width: 60px; /* 고정 너비 - S라인2가 한 줄에 들어가도록 증가 */
   height: 28px; /* 고정 높이 */
   display: flex;
   align-items: center;
@@ -755,9 +759,9 @@ footer {
   }
 
   .challenge-btn {
-    width: 36px;
+    width: 52px;
     height: 26px;
-    min-width: 36px;
+    min-width: 52px;
     padding: 4px 8px;
     font-size: 10px;
   }

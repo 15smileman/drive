@@ -741,7 +741,7 @@ Game.prototype.drawBackground = function drawBackground() {
   ctx.restore();
 
   ctx.fillStyle = '#171d24';
-  ctx.fillRect(0, 0, canvas.width, 80);
+  ctx.fillRect(0, 0, canvas.width, 45);
   ctx.fillRect(0, canvas.height - 80, canvas.width, 80);
 };
 
@@ -1176,7 +1176,7 @@ function drawOverlays(grade, cameraMode, elapsed, speed, steerAngle, parkingComp
   const hudWidth = totalWidth + 40;
   const hudHeight = 35;
   const x = (canvas.width - hudWidth) / 2;
-  const y = 20;
+  const y = 5;
 
   ctx.fillStyle = 'rgba(0,0,0,0.7)';
   ctx.fillRect(x, y, hudWidth, hudHeight);
